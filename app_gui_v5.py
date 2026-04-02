@@ -32,10 +32,12 @@ class BEAMTIMEBUDDEH:
         screen_w = self.root.winfo_screenwidth()
         screen_h = self.root.winfo_screenheight()
 
-        width = int(screen_w * 0.8)
-        height = int(screen_h * 0.8)
+        self.root.geometry(f"{int(screen_w*0.8)}x{int(screen_h*0.8)}")
+        self.root.maxsize(screen_w, screen_h)
 
-        self.root.geometry(f"{width}x{height}")
+        self.root.columnconfigure(1, weight=3)
+        self.root.columnconfigure(2, weight=1)
+
     # ==============================
     # Layout
     # ==============================
