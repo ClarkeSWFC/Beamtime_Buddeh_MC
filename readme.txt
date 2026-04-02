@@ -43,21 +43,46 @@ Yb,  88      `8b                     8I          8I           IP'`Yb
  
 ---Installation---
 
-1.extract zip into wherever
-2.ensure your python has all modules installed (they are listed at the top of the 4 python files)
-3.run main
+1.extract zip/download all from gihub into wherever
+2.ensure your python has all modules installed (they are listed at the top of the various python files)
+3.run main.py
 4.PROFIT
 
-~~~~~Running the program~~~~~~
+Compatible Beamlines:
+DIAMOND
+i09 - Labbook and Spectra (backwards compatibility assured)
+b07 - Labbook and Spectra
+i06-2 - Labbook - no spectra are measured here
+MAX IV
+FLEXPES - Labbook and Spectra
 
----Converting files---
-This program is compatible with i09 and Flexpes hdf5/nxs files (as of 21.2.26 - this may change later if they change the structure of the files - the relevant section to alter the metadata scraping is in convert_nexus_folder.py script). It can turn all XPS and NEXAFS data in .nxs/h5 files into two column xy .txt files for easy processing. Simply select in input folder with the .nxs files, an output folder for the .txt files, and click the appropriate conversion button. 
+~~~~~Loading and Handling Data~~~~~~
+What do the buttons do?
 
----Labbook creation---
-This program is also capable of generating an excel sheet labbook from the metadata available in the .nxs and gdaterminal i09 and .txt and .h5 files of flexpes. This code is pretty robust at this point, but if you need to edit it there is documentation in the Duncan group unified lab book. 
+---Select Input Folder---
+This will open windows explorer and allow you to pick the directory with your data in. It should be the location with the .nxs files for DIAMOND or the .txt and .h5 files for MAX IV. Once a folder has been selected, the program will detect which beamline you are on. If you 
+are getting an error saying "Beamline: Unsupported/Unknown" it means the program cannot identify the beamline. It does this by either looking at the start of the filenames of .nxs files (DIAMOND) or looking in the .txt files for "Location=" at MAX IV. You can quite easily add new beamlines by looking for some other indicator, but of course each new beamline will need new code writing for converting the data and generating the labbook.
 
----Loading the .txt files---
-To load these .txt files into the program, press the select spectra folder button and navigate to the appropriate folder. It should load all the files in this folder. Once more spectra have been generated, simply run the conversion again and load the files again, they shoud be added to the list without duplicating.
+---Select Output Folder---
+This is where the program will output any produced files. It will produce a labbook into this directory, and will produce a new folder in this directory called "spectra as .txt files" for the converted spectra.
+
+---Convert Spectra Data to .txt---
+This program can turn all XPS and NEXAFS data in .nxs/h5 files into two column xy .txt files for easy processing. These can then be loaded into the program and analysed quickly, or you can load them in your own preferred manner. I find it is always useful to convert spectra into a simple xy format.
+
+---Create labbook---
+This program is also capable of generating an excel sheet labbook from the metadata available in various .nxs and gdaterminal.log at DIAMOND and .txt and .h5 files of flexpes. There is further documentation available on editing this code for your needs on the Duncan Group Unified Labbook but otherwise it should be fairly self explanatory.
+
+---Select Spectra .txt Folder---
+To load these .txt files into the program, press the select spectra folder button and navigate to the appropriate folder. It should load all the files in this folder. Once more spectra have been generated, simply run the conversion again and load the files again, they should be added to the list without duplicating.
+
+---Spectra Search---
+You can search the spectra for specific keywords/filenumbers. Bare in mind the search function does not scroll back up to the top of the list of spectra when you search, so if nothing comes up remember you have to go back up to the top.
+
+---Deselect All-- 
+Deselects all selected spectra, obviously.
+
+---Clear All Spectra---
+Will remove all loaded spectra from the program, so you have to load the spectra.txt files back in again.
 
 --Spectrum Plotting and Processing--
 To plot a spectra, click the tickbox next to it in the drop down menu which appears after loading the .txt files. The program SHOULD detect whether the x axis is kinetic or binding energy - don't plot kinetic and binding energy spectra on the same axis - it'll do it but it won't make any damn sense you IMBECILE. Up to 15 spectra can be loaded at once. Once a spectrum is selected, there are a few things you can do to it:
@@ -66,13 +91,13 @@ To plot a spectra, click the tickbox next to it in the drop down menu which appe
 3. Spectra of the same x dimensions can be summed using the sum selected spectra button. Spectra can be summed in batches as summed spectra will be added to the list of spectra to the left. If you need to sum more than 15, you can do them in batches of 15 onto - just sum 15 spectra, then sum that summed spectra with the next 14.
 4. The fermi finder button will plot a labelled line showing the centre of a fermi edge. This presumes the data is a step function so is basically useless for non-fermi data.
 5. The save figure button allows you to save a figure as a png or an svg. If you want a jpg screenshot it.
-6. If you're looking at a NEXAFS file, click the NEXAFS toggle to change the X-axis. NEXAFS data has already been divided by i0 (I think).
+6. NEXAFS data has already been divided by i0 (I think).
 7. I have tried to stop the program from picking up XSW and RESPES but if they pop up anyway just ignore them as they are not meaningful.
-8. The search function does not scroll back up to the top of the list of spectra when you search, so fi nothing comes up remember you have to go back up to the top.
+
 
 ~~~Disclaimer~~~
 
-This program is supposed to be a quick and dirty XPS/NEXAFS processor for fast comparisons of spectra while on a beamtime. If you want to process the data properly, or fit peaks and backgrounds, use another program like CASA. However, the .nxs processing that this program does will also be useful for those programs as well, as conversion to a .xy file is compatible with more or less every XPS program.
+This program is supposed to be a quick and dirty XPS/NEXAFS processor for fast comparisons of spectra while on a beamtime. If you want to process the data properly, or fit peaks and backgrounds, use another program like CASA. However, the .nxs processing that this program does will also be useful for those programs as well, as conversion to a .xy file is compatible with more or less every XPS program. If you want to do meaningful XSW analysis, this is not the program for you.
 
 scroll down for 2pac
 
