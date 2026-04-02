@@ -43,7 +43,11 @@ class BEAMTIMEBUDDEH:
     # ==============================
 
     def setup_frames(self):
+        self.root.columnconfigure(0, weight=0)
         self.root.columnconfigure(1, weight=1)
+        self.root.columnconfigure(2, weight=0)
+
+        self.root.rowconfigure(0, weight=1)
 
         self.left_frame = tk.Frame(self.root, padx=10, pady=10)
         self.left_frame.grid(row=0, column=0, sticky="ns")
@@ -712,13 +716,19 @@ class BEAMTIMEBUDDEH:
     # ==============================
 
     def setup_plot_area(self):
-        self.figure = Figure()
+        self.figure = Figure(figsize=(5, 4), dpi=100)
         self.ax = self.figure.add_subplot(111)
 
-        self.canvas = FigureCanvasTkAgg(self.figure,
-                                        master=self.middle_frame)
-        self.canvas.get_tk_widget().pack(fill="both", expand=True)
+        self.canvas = FigureCanvasTkAgg(self.figure, master=self.middle_frame)
+
+        widget = self.canvas.get_tk_widget()
+        widget.grid(row=0, column=0, sticky="nsew")
+
+        self.middle_frame.rowconfigure(0, weight=1)
+        self.middle_frame.columnconfigure(0, weight=1)
+
         self.canvas.draw()
+        
 
     def update_plot(self, selected_keys):
 
@@ -809,7 +819,7 @@ class BEAMTIMEBUDDEH:
         ).pack(pady=5)
 
         tk.Button(self.right_frame,
-                  text="Sum Selected Spectra",
+                  text="Sum",
                   command=self.sum_selected_spectra).pack(pady=5)
 
         tk.Button(self.right_frame,
