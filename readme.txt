@@ -43,7 +43,7 @@ Yb,  88      `8b                     8I          8I           IP'`Yb
  
 ---Installation---
 
-1.extract zip/download all from gihub into wherever
+1.extract zip/download all from github into wherever
 2.ensure your python has all modules installed (they are listed at the top of the various python files)
 3.run main.py
 4.PROFIT

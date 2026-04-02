@@ -29,7 +29,13 @@ class BEAMTIMEBUDDEH:
         self.setup_loading_section()
         self.setup_plot_area()
         self.setup_shift_panel()
+        screen_w = self.root.winfo_screenwidth()
+        screen_h = self.root.winfo_screenheight()
 
+        width = int(screen_w * 0.8)
+        height = int(screen_h * 0.8)
+
+        self.root.geometry(f"{width}x{height}")
     # ==============================
     # Layout
     # ==============================
@@ -704,7 +710,7 @@ class BEAMTIMEBUDDEH:
     # ==============================
 
     def setup_plot_area(self):
-        self.figure = Figure(figsize=(6, 5))
+        self.figure = Figure()
         self.ax = self.figure.add_subplot(111)
 
         self.canvas = FigureCanvasTkAgg(self.figure,
