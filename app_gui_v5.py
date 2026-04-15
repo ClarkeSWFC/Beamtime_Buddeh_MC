@@ -707,10 +707,90 @@ class BEAMTIMEBUDDEH:
                 self.spectra_vars[key].set(False)
             selected_keys = selected_keys[:MAX_SELECTED]
 
-        
+        # ---- Update dropdowns ----
+        if len(selected_keys) == 2:
+            self.dropdown1["values"] = selected_keys
+            self.dropdown2["values"] = selected_keys
+
+            # Auto-fill defaults
+            self.subtract_var1.set(selected_keys[0])
+            self.subtract_var2.set(selected_keys[1])
+        else:
+            self.dropdown1["values"] = []
+            self.dropdown2["values"] = []
+            self.subtract_var1.set("")
+            self.subtract_var2.set("")
+
         self.update_shift_panel(selected_keys)
         self.update_plot(selected_keys)
+    def subtract_selected_spectra(self):
 
+        spec1 = self.subtract_var1.get()
+        spec2 = self.subtract_var2.get()
+
+        if not spec1 or not spec2:
+            messagebox.showwarning("Selection Error", "Select two spectra.")
+            return
+
+        if spec1 == spec2:
+            messagebox.showwarning("Invalid Selection", "Choose two different spectra.")
+            return
+
+        spectra1 = self.data_dict[spec1]
+        spectra2 = self.data_dict[spec2]
+
+        x1, y1 = spectra1[:, 0], spectra1[:, 1]
+        x2, y2 = spectra2[:, 0], spectra2[:, 1]
+
+        # Ensure same x-axis
+        if not np.allclose(x1, x2, atol=1e-6):
+            messagebox.showerror(
+                "X-axis mismatch",
+                "Selected spectra do not share the same X values."
+            )
+            return
+
+        result_y = y1 - y2
+        result_x = x1
+
+        # Name it nicely
+        name1 = spec1.split("_")[0]
+        name2 = spec2.split("_")[0]
+        new_name = f"{name1}-{name2}"
+
+        self.data_dict[new_name] = np.column_stack((result_x, result_y))
+
+        # ---- Update UI ----
+        for key, var in self.spectra_vars.items():
+            var.set(False)
+
+        var = tk.BooleanVar(value=True)
+        self.spectra_vars[new_name] = var
+
+        cb = tk.Checkbutton(
+            self.spectra_check_frame,
+            text=new_name,
+            variable=var,
+            command=self.replot
+        )
+        cb.pack(anchor="w")
+
+        # ---- Plot result ----
+        current_xlabel = self.ax.get_xlabel()
+        is_inverted = self.ax.xaxis_inverted()
+
+        self.ax.clear()
+        self.ax.plot(result_x, result_y, linewidth=2, label=new_name)
+
+        self.ax.set_xlabel(current_xlabel)
+        self.ax.set_ylabel("Intensity")
+
+        if is_inverted != self.ax.xaxis_inverted():
+            self.ax.invert_xaxis()
+
+        self.ax.set_title("Subtracted Spectrum")
+        self.ax.legend()
+        self.canvas.draw()
     # ==============================
     # Plot Area
     # ==============================
@@ -821,7 +901,34 @@ class BEAMTIMEBUDDEH:
         tk.Button(self.right_frame,
                   text="Sum",
                   command=self.sum_selected_spectra).pack(pady=5)
+        tk.Label(self.right_frame, text="--------------------").pack(pady=5)
 
+        tk.Label(self.right_frame, text="Subtract Spectra").pack()
+
+        self.subtract_var1 = tk.StringVar()
+        self.subtract_var2 = tk.StringVar()
+
+        self.dropdown1 = ttk.Combobox(
+            self.right_frame,
+            textvariable=self.subtract_var1,
+            state="readonly"
+        )
+        self.dropdown1.pack(fill="x", pady=2)
+
+        tk.Label(self.right_frame, text="from").pack()
+
+        self.dropdown2 = ttk.Combobox(
+            self.right_frame,
+            textvariable=self.subtract_var2,
+            state="readonly"
+        )
+        self.dropdown2.pack(fill="x", pady=2)
+
+        tk.Button(
+            self.right_frame,
+            text="Subtract",
+            command=self.subtract_selected_spectra
+        ).pack(pady=5)
         tk.Button(self.right_frame,
                   text="Fermi Finder",
                   command=self.find_step_centers).pack(pady=5)

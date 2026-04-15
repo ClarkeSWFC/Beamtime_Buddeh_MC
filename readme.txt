@@ -70,7 +70,7 @@ This is where the program will output any produced files. It will produce a labb
 This program can turn all XPS and NEXAFS data in .nxs/h5 files into two column xy .txt files for easy processing. These can then be loaded into the program and analysed quickly, or you can load them in your own preferred manner. I find it is always useful to convert spectra into a simple xy format.
 
 ---Create labbook---
-This program is also capable of generating an excel sheet labbook from the metadata available in various .nxs and gdaterminal.log at DIAMOND and .txt and .h5 files of flexpes. There is further documentation available on editing this code for your needs on the Duncan Group Unified Labbook but otherwise it should be fairly self explanatory.
+This program is also capable of generating an excel sheet labbook from the metadata available in various .nxs and gdaterminal.log at DIAMOND and .txt and .h5 files of flexpes. Some more beamline specific information can be found below and also on the Duncan Group Unified labbook. 
 
 ---Select Spectra .txt Folder---
 To load these .txt files into the program, press the select spectra folder button and navigate to the appropriate folder. It should load all the files in this folder. Once more spectra have been generated, simply run the conversion again and load the files again, they should be added to the list without duplicating.
@@ -93,6 +93,45 @@ To plot a spectra, click the tickbox next to it in the drop down menu which appe
 5. The save figure button allows you to save a figure as a png or an svg. If you want a jpg screenshot it.
 6. NEXAFS data has already been divided by i0 (I think).
 7. I have tried to stop the program from picking up XSW and RESPES but if they pop up anyway just ignore them as they are not meaningful.
+
+~~~Beamline specific information~~~
+
+---i09---
+i09 script is different from the others, as it draws metadata from not only the .nxs files, but also gdaterminal.log. Hence, you must ensure you copy over the log each time you copy the data over.
+
+Note on Sequence files
+• In order for the script to function correctly, only one region should be ticked when running a sequence file. If there are two regions ticked, they will both be assigned the same file number and the script will not be able to differentiate them. If you would like to set off a series of regions in a row, write a script with the individual sequence files listed with one region each in them.
+• Your sequence files must be named appropriately for the script to function properly; it should contain the region and preferably the photon energy used eg. C1s_430eV.seq
+
+Common issues:
+• If your XSW section is kinda ugly and not nicely spaced out, ensure that you have copied over the latest version of gdaterminal.log as well as the most recent nexus files.
+• XSW reflection plane is not contained in the metadata, and will just blanket assign whatever is in the script to all XSW. The section assigning this has the following comment: #you will need to change this if you're doing other reflection planes
+• If some of the techniques are returning as "unknown", there are two possible causes: firstly, is your sequence file named something accurate? Your sequence file name should contain the region you are measuring, as that is where the technique data is pulled from. If your sequence file is called User.seq (default), the code will not be able to work out the technique. Secondly, the script looks for certain phrases to assign the technique label. If you are measuring an orbital that hasn't previously been measured, the code won't recognise it. The area of code that determines these labels is called # Technique Classification.
+• The XSW is assigned a different colour depending on region, to aid in assessing the data after the fact. This is labelled  # ---- XSW Region Formats (preserve alternating bold) ----
+
+
+---MAX IV FLEXPES---
+MAXIV FLEXPES is a supported beamline, which includes both NEXAFS and XPS spectra processing. Everything here should work fine. 
+Some key notes:
+• They do not always have metadata saving turned on. Ask them to turn it on!
+•The NEXAFS files do not contain region information. However, the script assigns a region based on the measured energies. If you measure a region other than C KLL or N KLL, you will have to add them yourself. This part of the script is tagged with #assigning NEXAFS regions.
+
+---B07 - 1---
+This one is quite bare bones but is capable of processing spectra and producing a basic labbook. I've only done one beamtime here so I haven't optimised it much but it works much the same way as the others.
+
+---I06-2---
+Sobinson Sony wrote this code so ask him! It is based on my other labbook code though so follows a similar method.
+The code differentiates between LEED, LEEM and LASERPEEM techniques, + identifies LEEM/LEED videos & scans.
+
+· LEED: Selected when parameter fov_a (field of view )== 0
+
+· LASERPEEM: Selected when stv == 0 as no STV (start voltage) sweep is present for LASERPEEM
+
+· LEEM: Default if neither LEED nor LASERPEEM criteria are met, this is a constraint (need to work on differentiating b/w bright field & dark field as well)
+
+· Videos/scans for LEED & LEEM: Detected when STV or OBJ (objective lens) sweeps are active
+
+Row formatting in .xslx sheet: LEED → yellow; LEEM → blue; LASERPEEM → turquoise; videos/scans → in bold with same colour scheme for techniques.
 
 
 ~~~Disclaimer~~~

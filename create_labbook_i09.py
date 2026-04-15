@@ -232,7 +232,7 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
                     if region_match:
                         region = region_match.group(1)
                     elif technique == "Rocking Curve":
-                        region = "(220)"  #you will need to change this if you're doing other reflection planes
+                        region = "(111)"  #you will need to change this if you're doing other reflection planes
                     else:
                         region = "could not find region"
             else:
