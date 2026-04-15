@@ -164,7 +164,7 @@ def create_labbook_flexpes(InDir, OutDir, progress_callback=None):
                             if mp_polar is not None and len(mp_polar) > 0:
                                 polar = float(np.mean(mp_polar))
 
-                            pcap_energy_av = measurement.get('pcap_energy_av')
+                            pcap_energy_av = measurement.get('pcap_energy_av')#assigning NEXAFS regions
                             if pcap_energy_av is not None and len(pcap_energy_av) > 0:
                                 mean_energy = np.mean(pcap_energy_av)
                                 if 270 <= mean_energy <= 330:
