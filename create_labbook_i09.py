@@ -1,4 +1,9 @@
-def create_labbook_i09(inDir, outDir, progress_callback=None):
+def create_labbook_i09(
+    inDir,
+    outDir,
+    progress_callback=None,
+    formatting=None
+):
     """
     Fully functionalised version of original labbook script.
     No logic removed. No formatting removed.
@@ -10,6 +15,18 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
     import os
     import re
     import fnmatch
+    if formatting is None:
+        formatting = {}
+
+    xsw_colours = formatting.get(
+        "xsw_colours",
+        {}
+    )
+    prep_allocations = formatting.get(
+        "prep_allocations",
+        []
+    )
+
     dirname = inDir
     savelocation = os.path.join(outDir, 'all_data_contents.xlsx')
     file_list = fnmatch.filter(os.listdir(inDir), "*.nxs")
@@ -232,9 +249,23 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
                     if region_match:
                         region = region_match.group(1)
                     elif technique == "Rocking Curve":
-                        region = "(111)"  #you will need to change this if you're doing other reflection planes
-                    else:
-                        region = "could not find region"
+                        # Default if the reflection isn't specified
+                        region = "(111) - not specified in log"
+
+                        # Search around this scan for the reflection line
+                        for k in range(i - 60, min(i + 10, len(lines))):
+                            if k < 0:
+                                continue
+
+                            reflection_match = re.search(
+                                r'using the\s*(\([^)]+\))\s*reflection',
+                                lines[k]
+                            )
+
+                            if reflection_match:
+                                region = reflection_match.group(1)
+                                break
+                        
             else:
                 region = "could not find region"
 
@@ -342,6 +373,18 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
     MAX_XPS = 4
 
     blank = {col: "" for col in df_rounded.columns}
+    blank["_prep_colour"] = None
+    def get_prep_colour(filename):
+        try:
+            filename = int(filename)
+        except Exception:
+            return None
+
+        for prep in prep_allocations:
+            if prep["start"] <= filename <= prep["end"]:
+                return prep.get("colour")
+
+        return None
     df_out = []
     i = 0
     n = len(df_rounded)
@@ -373,7 +416,13 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
 
                     # ----- Insert blank BEFORE block -----
                     if not df_out or any(df_out[-1][col] != "" for col in df_rounded.columns):
-                        df_out.append(blank.copy())
+                        blank_row = blank.copy()
+
+                        # assign prep colour if possible
+                        previous_filename = df_rounded.iloc[i]["filename"]
+                        blank_row["filename"] = previous_filename
+
+                        df_out.append(blank_row)
 
                     # Insert full block
                     for k in range(i, j):
@@ -381,7 +430,13 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
 
                     # ----- Insert blank AFTER block -----
                     if any(df_out[-1][col] != "" for col in df_rounded.columns):
-                        df_out.append(blank.copy())
+                        blank_row = blank.copy()
+
+                        # assign prep colour if possible
+                        previous_filename = df_rounded.iloc[i]["filename"]
+                        blank_row["filename"] = previous_filename
+                        
+                        df_out.append(blank_row)
 
                     i = j
                     continue
@@ -433,26 +488,38 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
             })
 
             # ---- XSW Region Formats (preserve alternating bold) ----
-            #add whatever XSW regions you ae measuring here and assign them a colour
-            REGION_FORMATS = {
-                "c1s": (
-                    workbook.add_format({"bg_color": "#FFC000", "bold": True}),
-                    workbook.add_format({"bg_color": "#FFC000", "bold": False}),
-                ),
-                "n1s": (
-                    workbook.add_format({"bg_color": "#11C1FF", "bold": True}),
-                    workbook.add_format({"bg_color": "#11C1FF", "bold": False}),
-                ),
-                "ru2p": (
-                    workbook.add_format({"bg_color": "#DA64EE", "bold": True}),
-                    workbook.add_format({"bg_color": "#DA64EE", "bold": False}),
-                ),
-                "o1s": (
-                    workbook.add_format({"bg_color": "#70AD47", "bold": True, "font_color": "white"}),
-                    workbook.add_format({"bg_color": "#70AD47", "bold": False, "font_color": "white"}),
-                ),
-            }
+            
+            
+            REGION_FORMATS = {}
 
+            for region, colour in xsw_colours.items():
+                
+                key = region.lower().replace("_xsw", "")
+                
+                REGION_FORMATS[key] = (
+                    workbook.add_format({
+                        "bg_color": colour,
+                        "bold": True
+                    }),
+                    workbook.add_format({
+                        "bg_color": colour,
+                        "bold": False
+                    })
+                )
+            PREP_FORMATS = []
+
+            for prep in prep_allocations:
+                try:
+                    PREP_FORMATS.append({
+                        "start": int(prep["start"]),
+                        "end": int(prep["end"]),
+                        "format": workbook.add_format({
+                            "bg_color": prep.get("colour", "#FFF2CC"),
+                            "bold": True
+                        })
+                    })
+                except Exception:
+                    pass
             # ---- Write header row ----
             for col_num, col_name in enumerate(df_rounded.columns):
                 worksheet.write(0, col_num, col_name, header_format)
@@ -461,10 +528,41 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
             excel_row = 1
             prev_date = None
             n_cols = len(df_rounded.columns)
+            prep_banner_format = {}
 
+            for prep in prep_allocations:
+                prep_banner_format[(prep["start"], prep["end"])] = workbook.add_format({
+                    "bold": True,
+                    "bg_color": prep.get("colour", "#FFF2CC"),
+                    "align": "center",
+                    "valign": "vcenter"
+                })
             for _, row in df_rounded.iterrows():
                 current_date = row.get("Date", "")
+                try:
+                    current_filename = int(row.get("filename", -1))
+                except Exception:
+                    current_filename = -1
 
+
+                # Insert prep banner above first scan
+                for prep in prep_allocations:
+                    if current_filename == int(prep["start"]):
+
+                        worksheet.merge_range(
+                            excel_row,
+                            0,
+                            excel_row,
+                            n_cols - 1,
+                            prep.get("description", ""),
+                            prep_banner_format[
+                                (prep["start"], prep["end"])
+                            ]
+                        )
+
+                        worksheet.set_row(excel_row, 24)
+                        excel_row += 1
+                        break
                 # Insert date banner when date changes
                 if current_date and current_date != prev_date:
                     worksheet.merge_range(
@@ -481,7 +579,10 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
 
                 tech_value = row.get("technique", "")
                 region_value = str(row.get("region", "")).lower()
-
+                filename_numeric = pd.to_numeric(
+                    row.get("filename", ""),
+                    errors="coerce"
+                )
                 # Determine row boldness (alternating for all non-blank rows)
                 is_bold_row = (excel_row % 2 == 0)
 
@@ -491,7 +592,13 @@ def create_labbook_i09(inDir, outDir, progress_callback=None):
 
                 for col_num, value in enumerate(row):
                     cell_format = None
-
+                    for prep in PREP_FORMATS:
+                        if (
+                                pd.notna(filename_numeric)
+                                and prep["start"] <= filename_numeric <= prep["end"]
+                            ):
+                            cell_format = prep["format"]
+                            break
                     # Only override REGION cell when technique is XSW
                     if df_rounded.columns[col_num] == "region" and tech_value == "XSW":
                         for key, (bold_fmt, normal_fmt) in REGION_FORMATS.items():

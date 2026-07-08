@@ -56,6 +56,18 @@ i06-2 - Labbook - no spectra are measured here
 MAX IV
 FLEXPES - Labbook and Spectra
 
+Modules you need to run Beamtime Buddeh:
+tkinter
+h5py
+numpy
+pandas
+os
+re
+fnmatch
+json
+matplotlib
+threading
+
 ~~~~~Loading and Handling Data~~~~~~
 What do the buttons do?
 
@@ -105,9 +117,9 @@ Note on Sequence files
 
 Common issues:
 • If your XSW section is kinda ugly and not nicely spaced out, ensure that you have copied over the latest version of gdaterminal.log as well as the most recent nexus files.
-• XSW reflection plane is not contained in the metadata, and will just blanket assign whatever is in the script to all XSW. The section assigning this has the following comment: #you will need to change this if you're doing other reflection planes
+• XSW reflection plane should be contained within the gdaterminal.log, as of 7/26. If the script can't find it, tell your friendly beamline scientist to put it in.
 • If some of the techniques are returning as "unknown", there are two possible causes: firstly, is your sequence file named something accurate? Your sequence file name should contain the region you are measuring, as that is where the technique data is pulled from. If your sequence file is called User.seq (default), the code will not be able to work out the technique. Secondly, the script looks for certain phrases to assign the technique label. If you are measuring an orbital that hasn't previously been measured, the code won't recognise it. The area of code that determines these labels is called # Technique Classification.
-• The XSW is assigned a different colour depending on region, to aid in assessing the data after the fact. This is labelled  # ---- XSW Region Formats (preserve alternating bold) ----
+• The generated labbook will be colour coded dependent on user input. simply select which colours you want for each prep/ XSW region from the popup which appears after clicking generate labbook.
 
 
 ---MAX IV FLEXPES---

@@ -8,6 +8,8 @@ from create_labbook_i09 import create_labbook_i09
 from create_labbook_flexpes  import create_labbook_flexpes 
 from create_labbook_i06_2 import create_labbook_i06_2
 from create_labbook_b07_1 import create_labbook_b07_1
+from i09_formatting import LabbookFormattingDialog
+import h5py
 import numpy as np
 import threading
 from tkinter import ttk
@@ -124,6 +126,44 @@ class BEAMTIMEBUDDEH:
             "cannot identify beamline data in selected location"
         )
         return None
+    # ==============================
+    # detect XSW regions (i09)
+    # ==============================
+    def detect_i09_xsw_regions(self):
+
+        regions = set()
+
+        for filename in os.listdir(self.input_dir):
+            
+            if filename.endswith(".nxs"):
+                
+                filepath = os.path.join(
+                    self.input_dir,
+                    filename
+                )
+                
+                try:
+                    with h5py.File(filepath, "r") as f:
+                        
+                        if "entry" in f:
+                            entry = "entry"
+                        elif "entry1" in f:
+                            entry = "entry1"
+                        else:
+                            continue
+
+                        keys = list(f[entry].keys())
+
+                        if keys:
+                            region = keys[0].lower()
+
+                            if "xsw" in region:
+                                regions.add(region)
+                            
+                except Exception:
+                    pass
+
+        return sorted(regions)
     # ==============================
     # Conversion Section
     # ==============================
@@ -363,10 +403,24 @@ class BEAMTIMEBUDDEH:
 
         def task():
             try:
+                regions = self.detect_i09_xsw_regions()
+
+                dialog = LabbookFormattingDialog(
+                    self.root,
+                    regions
+                )
+
+                self.root.wait_window(dialog)
+
+                if dialog.cancelled:
+                    return
+                
+                formatting = dialog.result
                 create_labbook_i09(
                     self.input_dir,
                     self.output_dir,
-                    progress_callback=progress_callback
+                    progress_callback=progress_callback,
+                    formatting=formatting
                 )
                 progress_window.close()
                 messagebox.showinfo("Success", " Excel sheet produced by hardworking script goblins: ლ༼ ಥ 益 ಥ ༽ლ")
