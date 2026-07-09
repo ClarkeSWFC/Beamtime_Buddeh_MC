@@ -121,21 +121,69 @@ class LabbookFormattingDialog(tk.Toplevel):
         ).grid(row=row, column=0, columnspan=6, pady=(20,5))
 
         row += 1
-        tk.Label(self,text="Start").grid(row=row,column=0)
-        tk.Label(self,text="End").grid(row=row,column=1)
-        tk.Label(self,text="Colour").grid(row=row,column=2)
-        tk.Label(self,text="").grid(row=row,column=3)
-        tk.Label(self,text="Description").grid(row=row,column=4)
-
-        row += 1
-        self.prep_frame = tk.Frame(self)
-        self.prep_frame.grid(
-            row=row,
-            column=0,
-            columnspan=6,
-            sticky="w"
+        tk.Label(self, text="Start", width=8, anchor="w").grid(
+            row=row, column=0, sticky="w"
         )
 
+        tk.Label(self, text="End", width=8, anchor="w").grid(
+            row=row, column=1, sticky="w"
+        )
+
+        tk.Label(self, text="Colour", width=10, anchor="w").grid(
+            row=row, column=2, sticky="w"
+        )
+
+        tk.Label(self, text="Description", width=35, anchor="w").grid(
+            row=row, column=4, sticky="w"
+        )
+
+        row += 1
+        # Scrollable prep area
+        prep_canvas = tk.Canvas(self, height=250)
+        prep_scrollbar = tk.Scrollbar(
+            self,
+            orient="vertical",
+            command=prep_canvas.yview
+        )
+
+        self.prep_frame = tk.Frame(prep_canvas)
+
+        self.prep_frame.bind(
+            "<Configure>",
+            lambda e: prep_canvas.configure(
+                scrollregion=prep_canvas.bbox("all")
+            )
+        )
+
+        prep_canvas.create_window(
+            (0, 0),
+            window=self.prep_frame,
+            anchor="nw"
+        )
+        
+        prep_canvas.configure(
+            yscrollcommand=prep_scrollbar.set
+        )
+
+        prep_canvas.grid(
+            row=row,
+            column=0,
+            columnspan=5,
+            sticky="ew"
+        )
+
+        prep_scrollbar.grid(
+            row=row,
+            column=5,
+            sticky="ns"
+        )
+        prep_canvas.bind_all(
+            "<MouseWheel>",
+            lambda e: prep_canvas.yview_scroll(
+                int(-e.delta/120),
+                "units"
+            )
+        )
         row += 1
 
         tk.Button(

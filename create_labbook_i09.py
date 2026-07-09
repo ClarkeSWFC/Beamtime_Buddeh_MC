@@ -374,6 +374,7 @@ def create_labbook_i09(
 
     blank = {col: "" for col in df_rounded.columns}
     blank["_prep_colour"] = None
+    blank["_prep_id"] = None
     def get_prep_colour(filename):
         try:
             filename = int(filename)
@@ -420,8 +421,8 @@ def create_labbook_i09(
 
                         # assign prep colour if possible
                         previous_filename = df_rounded.iloc[i]["filename"]
-                        blank_row["filename"] = previous_filename
-
+                        blank_row["filename"] = ""
+                        blank_row["_prep_id"] = df_rounded.iloc[i]["filename"]
                         df_out.append(blank_row)
 
                     # Insert full block
@@ -434,8 +435,8 @@ def create_labbook_i09(
 
                         # assign prep colour if possible
                         previous_filename = df_rounded.iloc[i]["filename"]
-                        blank_row["filename"] = previous_filename
-                        
+                        blank_row["filename"] = ""
+                        blank_row["_prep_id"] = df_rounded.iloc[i]["filename"]
                         df_out.append(blank_row)
 
                     i = j
@@ -447,13 +448,19 @@ def create_labbook_i09(
 
     # Convert back to DataFrame
     df_rounded = pd.DataFrame(df_out)
-
+    
 
     #%% save with date banners (xlsxwriter)
-
+    for col in ["_prep_colour"]:
+        if col in df_rounded.columns:
+            df_rounded = df_rounded.drop(columns=[col])
     df_rounded = df_rounded.fillna("")
-
+    print(df_rounded[df_rounded["filename"].isin(["310332","310338"])])
     try:
+        df_export = df_rounded.drop(
+            columns=["_prep_id"],
+            errors="ignore"
+        )
         with pd.ExcelWriter(
             savelocation,
             engine="xlsxwriter",
@@ -513,26 +520,32 @@ def create_labbook_i09(
                     PREP_FORMATS.append({
                         "start": int(prep["start"]),
                         "end": int(prep["end"]),
-                        "format": workbook.add_format({
+                        "bold_format": workbook.add_format({
                             "bg_color": prep.get("colour", "#FFF2CC"),
                             "bold": True
+                        }),
+                        "normal_format": workbook.add_format({
+                            "bg_color": prep.get("colour", "#FFF2CC"),
+                            "bold": False
                         })
                     })
                 except Exception:
                     pass
             # ---- Write header row ----
-            for col_num, col_name in enumerate(df_rounded.columns):
+            for col_num, col_name in enumerate(df_export.columns):
                 worksheet.write(0, col_num, col_name, header_format)
                 worksheet.set_column(col_num, col_num, 18)
 
             excel_row = 1
             prev_date = None
-            n_cols = len(df_rounded.columns)
+            n_cols = len(
+                df_export.columns.drop("_prep_id", errors="ignore")
+            )
             prep_banner_format = {}
 
             for prep in prep_allocations:
                 prep_banner_format[(prep["start"], prep["end"])] = workbook.add_format({
-                    "bold": True,
+                    "bold": False,
                     "bg_color": prep.get("colour", "#FFF2CC"),
                     "align": "center",
                     "valign": "vcenter"
@@ -583,6 +596,11 @@ def create_labbook_i09(
                     row.get("filename", ""),
                     errors="coerce"
                 )
+                if pd.isna(filename_numeric):
+                    filename_numeric = pd.to_numeric(
+                        row.get("_prep_id", ""),
+                        errors="coerce"
+                    )
                 # Determine row boldness (alternating for all non-blank rows)
                 is_bold_row = (excel_row % 2 == 0)
 
@@ -590,17 +608,25 @@ def create_labbook_i09(
                 row_format = even_row_format if is_bold_row else odd_row_format
                 worksheet.set_row(excel_row, None, row_format)
 
-                for col_num, value in enumerate(row):
+                export_columns = df_export.columns
+
+                for col_num, col_name in enumerate(export_columns):
+
+                    value = row[col_name]
                     cell_format = None
                     for prep in PREP_FORMATS:
                         if (
                                 pd.notna(filename_numeric)
                                 and prep["start"] <= filename_numeric <= prep["end"]
                             ):
-                            cell_format = prep["format"]
+                            cell_format = (
+                                prep["bold_format"]
+                                if is_bold_row
+                                else prep["normal_format"]
+                            )
                             break
                     # Only override REGION cell when technique is XSW
-                    if df_rounded.columns[col_num] == "region" and tech_value == "XSW":
+                    if col_name == "region" and tech_value == "XSW":
                         for key, (bold_fmt, normal_fmt) in REGION_FORMATS.items():
                             if key in region_value:
                                 cell_format = bold_fmt if is_bold_row else normal_fmt
