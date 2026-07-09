@@ -139,7 +139,11 @@ class LabbookFormattingDialog(tk.Toplevel):
 
         row += 1
         # Scrollable prep area
-        prep_canvas = tk.Canvas(self, height=250)
+        prep_canvas = tk.Canvas(
+            self,
+            height=250,
+            width=700
+        )
         prep_scrollbar = tk.Scrollbar(
             self,
             orient="vertical",
