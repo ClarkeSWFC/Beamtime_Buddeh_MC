@@ -30,7 +30,7 @@ def create_labbook_i09(
     dirname = inDir
     savelocation = os.path.join(outDir, 'all_data_contents.xlsx')
     file_list = fnmatch.filter(os.listdir(inDir), "*.nxs")
-    total_files = len(file_list)
+    total_files = len(file_list) 
     # ---------------------- SUFFIX MAP ----------------------
     suffix_map = {
         "smpmx": "X (mm)",
