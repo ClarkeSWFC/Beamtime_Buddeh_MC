@@ -296,7 +296,17 @@ def create_labbook_i06_2(inDir, outDir, progress_callback=None):
             rows.append(row)
 
     df = pd.DataFrame(rows)
+    # Convert date and time to a sortable datetime
+    df["datetime"] = pd.to_datetime(
+        df["date"] + " " + df["time"],
+        errors="coerce"
+    )
 
+    # Sort chronologically
+    df = df.sort_values("datetime")
+    
+    # Remove helper column
+    df = df.drop(columns="datetime").reset_index(drop=True)
     df["comments"] = ""
 
     new_order = [

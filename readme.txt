@@ -67,6 +67,7 @@ fnmatch
 json
 matplotlib
 threading
+xlsxwriter
 
 ~~~~~Loading and Handling Data~~~~~~
 What do the buttons do?
