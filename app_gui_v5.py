@@ -203,6 +203,14 @@ class BEAMTIMEBUDDEH:
             text="Create Labbook",
             command=self.auto_create_labbook
         ).pack(fill="x", pady=2)
+
+        self.use_prior_settings_var = tk.BooleanVar(value=False)
+
+        tk.Checkbutton(
+            self.left_frame,
+            text="Use prior settings",
+            variable=self.use_prior_settings_var
+        ).pack(anchor="w", pady=(2, 5))
     def select_input_folder(self):
         folder = filedialog.askdirectory()
         if not folder:
@@ -247,24 +255,43 @@ class BEAMTIMEBUDDEH:
     def auto_create_labbook(self):
 
         if not hasattr(self, 'input_dir') or not hasattr(self, 'output_dir'):
-            messagebox.showwarning("Error", "Select both folders first.")
+            messagebox.showwarning(
+                "Error",
+                "Select both folders first."
+            )
             return
 
         if not hasattr(self, 'beamline') or self.beamline is None:
-            messagebox.showwarning("Error", "Beamline not identified.")
+            messagebox.showwarning(
+                "Error",
+                "Beamline not identified."
+            )
             return
+
+        # ==========================================
+        # Check whether an existing labbook is open
+        # ==========================================
+
+        if not self.check_labbook_files_open():
+            return
+
+        # ==========================================
+        # Create labbook
+        # ==========================================
 
         if self.beamline == "i09":
             self.create_labbook_i09_gui()
 
         elif self.beamline == "flexpes":
             self.create_labbook_flexpes_gui()
-            
+
         elif self.beamline == "i06-2":
             self.create_labbook_i06_2_gui()
-        
+
         elif self.beamline == "b07-1":
             self.create_labbook_b07_1_gui()
+
+        
     def run_conversion_i09(self):
 
         if not hasattr(self, 'input_dir') or not hasattr(self, 'output_dir'):
@@ -387,12 +414,22 @@ class BEAMTIMEBUDDEH:
             messagebox.showwarning("Error", "Select both folders first.")
             return
 
-        file_list = [f for f in os.listdir(self.input_dir) if f.endswith(".nxs")]
+        file_list = [
+            f for f in os.listdir(self.input_dir)
+            if f.endswith(".nxs")
+        ]
+
         total_files = len(file_list)
+
         if total_files == 0:
             messagebox.showinfo("No Files", "No matching files found.")
             return
-        progress_window = ProgressWindow(self.root, total_files, "Creating i09 Labbook")
+
+        progress_window = ProgressWindow(
+            self.root,
+            total_files,
+            "Creating i09 Labbook"
+        )
 
         def progress_callback(message):
             def update_ui():
@@ -403,30 +440,62 @@ class BEAMTIMEBUDDEH:
 
         def task():
             try:
-                regions = self.detect_i09_xsw_regions()
 
-                dialog = LabbookFormattingDialog(
-                    self.root,
-                    regions
-                )
+                # ==========================================
+                # Formatting settings
+                # ==========================================
 
-                self.root.wait_window(dialog)
+                if self.use_prior_settings_var.get():
+                    
+                    # Load the previously saved formatting
+                    # directly from i09_formatting_settings.json
+                    formatting = LabbookFormattingDialog.load_settings()
 
-                if dialog.cancelled:
-                    return
+                else:
+
+                    # Open formatting dialog as normal
+                    regions = self.detect_i09_xsw_regions()
                 
-                formatting = dialog.result
+                    dialog = LabbookFormattingDialog(
+                        self.root,
+                        regions
+                    )
+
+                    self.root.wait_window(dialog)
+
+                    if dialog.cancelled:
+                        progress_window.close()
+                        return
+
+                    formatting = dialog.result
+
+                # ==========================================
+                # Create labbook
+                # ==========================================
+
                 create_labbook_i09(
                     self.input_dir,
                     self.output_dir,
                     progress_callback=progress_callback,
                     formatting=formatting
                 )
+
                 progress_window.close()
-                messagebox.showinfo("Success", " Excel sheet produced by hardworking script goblins: ლ༼ ಥ 益 ಥ ༽ლ")
+
+                messagebox.showinfo(
+                    "Success",
+                    "Excel sheet produced by hardworking script goblins: "
+                    "ლ༼ ಥ 益 ಥ ༽ლ"
+                )
+
             except Exception as e:
+
                 progress_window.close()
-                messagebox.showerror("Error", str(e))
+
+                messagebox.showerror(
+                    "Error",
+                    str(e)
+                )
 
         threading.Thread(target=task).start()
     def create_labbook_i06_2_gui(self):
@@ -543,6 +612,54 @@ class BEAMTIMEBUDDEH:
                 messagebox.showerror("Error", str(e))
 
         threading.Thread(target=task).start()
+    def check_labbook_files_open(self):
+        """
+        Check whether any existing labbook output file is currently
+        locked/open by another application such as Excel.
+
+        Returns True if it is safe to continue.
+        Returns False if a labbook appears to be open.
+        """
+
+        files_to_check = [
+            "all_data_contents.xlsx",
+            "i06_LEEM_Labbook.xlsx",
+            "flexpes_labbook.csv"
+        ]
+
+        for filename in files_to_check:
+
+            filepath = os.path.join(self.output_dir, filename)
+
+            # File doesn't exist yet, so nothing to check
+            if not os.path.exists(filepath):
+                continue
+
+            try:
+                # Try opening the file in append mode.
+                # If Excel has it locked, this should raise PermissionError.
+                with open(filepath, "a"):
+                    pass
+
+            except PermissionError:
+
+                messagebox.showwarning(
+                    "Excel File Open",
+                    "Please ensure Excel sheet is closed before generating labbook"
+                )
+
+                return False
+
+            except OSError:
+                # Some Windows file locks may appear as a general OSError
+                messagebox.showwarning(
+                    "Excel File Open",
+                    "Please ensure Excel sheet is closed before generating labbook"
+                )
+
+                return False
+
+        return True
     # ==============================
     # Loading Section
     # ==============================

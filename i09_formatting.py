@@ -320,11 +320,12 @@ class LabbookFormattingDialog(tk.Toplevel):
         self.cancelled = False
 
         self.destroy()
-    def load_settings(self):
+    @classmethod
+    def load_settings(cls):
 
-        if os.path.exists(self.SETTINGS_FILE):
+        if os.path.exists(cls.SETTINGS_FILE):
             try:
-                with open(self.SETTINGS_FILE, "r") as f:
+                with open(cls.SETTINGS_FILE, "r") as f:
                     return json.load(f)
             except Exception:
                 pass

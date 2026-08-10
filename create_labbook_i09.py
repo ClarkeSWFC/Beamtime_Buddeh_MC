@@ -269,19 +269,60 @@ def create_labbook_i09(
             else:
                 region = "could not find region"
 
-            # Step 3: Look for FWHM if technique is XSW
-            if technique == "XSW":
-                for k in range(max(i - 100, 0), i + 1):#the more haxpes you do, the further back you will have to look for this information
-                    bragg_line = lines[k]
-                    if "New Bragg energy is :" in bragg_line:
-                        match = re.search(r"New Bragg energy is\s*:\s*([\d.]+).*?FWHM is\s*([\d.eE+-]+)", bragg_line)
-                        if match:
-                            bragg_energy = float(match.group(1))
-                            fwhm_value = float(match.group(2))
-                            fwhm = f"FWHM = {fwhm_value:.2f} eV"
+            
+            # Step 3: Look for FWHM for every Rocking Curve
+            #
+            # Successful RC/XSW example:
+            #   New Bragg energy is : # keV and the FWHM is # eV
+            #
+            # Unsuccessful RC example:
+            #   width of # eV compared to # eV
+            #
+            # The FWHM is normally reported AFTER the .nxs filename, so search
+            # forward through this scan. We stop if another scan starts, to avoid
+            # accidentally assigning the next rocking curve's FWHM to this one.
+
+            if technique in ["XSW", "Rocking Curve"]:
+
+                for k in range(i, len(lines)):
+
+                    fwhm_line = lines[k]
+
+                    # Stop if we have reached the next scan.
+                    # This prevents a missing FWHM from accidentally picking up
+                    # the value belonging to a later rocking curve.
+                    if k > i and "NEXT SCAN" in lines[k]:
                         break
 
-            
+                    # Successful rocking curve / XSW
+
+                    match = re.search(
+                        r"New Bragg energy is\s*:?\s*[\d.eE+-]+"
+                        r".*?FWHM is\s*([\d.eE+-]+)\s*eV",
+                        fwhm_line,
+                        re.IGNORECASE
+                    )
+
+                    if match:
+                        fwhm_value = float(match.group(1))
+                        fwhm = f"FWHM = {fwhm_value:.2f} eV"
+                        break
+
+                
+                    # Unsuccessful rocking curve
+                
+                    match = re.search(
+                        r"width of\s*([\d.eE+-]+)\s*eV\s+compared to",
+                        fwhm_line,
+                        re.IGNORECASE
+                    )
+
+                    if match:
+                        fwhm_value = float(match.group(1))
+                        fwhm = f"FWHM = {fwhm_value:.2f} eV"
+                        break
+
+
             if found_line:
                 data.append({
                     "filename": filenumber,
